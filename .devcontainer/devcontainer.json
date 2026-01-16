@@ -1,0 +1,32 @@
+{
+	"name": "Zero-G Chat DevContainer",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+	"features": {
+		"ghcr.io/devcontainers/features/common-utils:2": {},
+        "ghcr.io/devcontainers/features/git:1": {}
+	},
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode",
+                "Prisma.prisma",
+                "bradlc.vscode-tailwindcss"
+			]
+		}
+	},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [3000, 5432],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// We'll use this to install dependencies and generate Prisma client later.
+	// "postCreateCommand": "npm install && npx prisma generate",
+
+	// Set `remoteUser` to `node` to connect as this user.
+	"remoteUser": "node"
+}
