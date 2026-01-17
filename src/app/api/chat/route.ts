@@ -36,7 +36,7 @@ export async function POST(req: Request) {
             take: 20, // Limit context window
         });
 
-        const formattedMessages = previousMessages.map(msg => ({
+        const formattedMessages = previousMessages.map((msg: { role: string; content: string }) => ({
             role: msg.role as 'user' | 'assistant',
             content: msg.content
         }));
