@@ -13,7 +13,10 @@
 				"dbaeumer.vscode-eslint",
 				"esbenp.prettier-vscode",
 				"Prisma.prisma",
-				"bradlc.vscode-tailwindcss"
+				"bradlc.vscode-tailwindcss",
+				"usernamehw.errorlens",
+				"formulahendry.auto-rename-tag",
+				"ms-azuretools.vscode-docker"
 			]
 		}
 	},

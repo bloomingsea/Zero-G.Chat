@@ -29,11 +29,21 @@ export async function POST(req: Request) {
             },
         });
 
+        // Fetch previous messages for context
+        const previousMessages = await prisma.message.findMany({
+            where: { conversationId: targetConversationId },
+            orderBy: { createdAt: 'asc' },
+            take: 20, // Limit context window
+        });
+
+        const formattedMessages = previousMessages.map(msg => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content
+        }));
+
         const completion = await openRouter.chat.completions.create({
             model: 'openai/gpt-3.5-turbo',
-            messages: [
-                { role: 'user', content: prompt }
-            ],
+            messages: formattedMessages,
         });
 
         const aiContent = completion.choices[0].message.content || '...';
