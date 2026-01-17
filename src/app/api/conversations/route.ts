@@ -6,7 +6,10 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     try {
         const conversations = await prisma.conversation.findMany({
-            orderBy: { createdAt: 'desc' },
+            orderBy: [
+                { isPinned: 'desc' },
+                { createdAt: 'desc' }
+            ],
             include: {
                 messages: {
                     orderBy: { createdAt: 'asc' },

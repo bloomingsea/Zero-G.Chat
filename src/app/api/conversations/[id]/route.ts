@@ -27,6 +27,30 @@ export async function GET(
     }
 }
 
+export async function PATCH(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const body = await request.json();
+        const { title, isPinned } = body;
+
+        const conversation = await prisma.conversation.update({
+            where: { id },
+            data: {
+                ...(title !== undefined && { title }),
+                ...(isPinned !== undefined && { isPinned }),
+            },
+        });
+
+        return NextResponse.json(conversation);
+    } catch (error) {
+        console.error('Failed to update conversation:', error);
+        return NextResponse.json({ error: 'Failed to update conversation' }, { status: 500 });
+    }
+}
+
 export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
