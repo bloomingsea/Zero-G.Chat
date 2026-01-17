@@ -4,11 +4,12 @@ import Credentials from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import prisma from "./src/lib/prisma"
 import bcrypt from "bcryptjs"
-
-// const prisma = new PrismaClient()
+import { authConfig } from "./auth.config"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+    ...authConfig,
     adapter: PrismaAdapter(prisma),
+    session: { strategy: "jwt" },
     providers: [
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -20,9 +21,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 password: {},
             },
             authorize: async (credentials) => {
-                let user = null
-
-                // Type check for credentials
                 if (!credentials?.email || !credentials?.password) {
                     return null
                 }
@@ -30,40 +28,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 const email = credentials.email as string
                 const password = credentials.password as string
 
-                user = await prisma.user.findUnique({
+                const user = await prisma.user.findUnique({
                     where: { email },
                 })
 
-                if (!user) {
-                    throw new Error("User not found.")
-                }
-
-                if (!user.password) {
-                    throw new Error("Invalid password.")
+                if (!user || !user.password) {
+                    return null
                 }
 
                 const passwordsMatch = await bcrypt.compare(password, user.password)
 
                 if (!passwordsMatch) {
-                    throw new Error("Invalid password.")
+                    return null
                 }
 
                 return user
             },
         }),
     ],
-    session: {
-        strategy: "jwt",
-    },
-    pages: {
-        signIn: "/login",
-    },
-    callbacks: {
-        async session({ session, token }) {
-            if (token.sub && session.user) {
-                session.user.id = token.sub
-            }
-            return session
-        },
-    },
 })
