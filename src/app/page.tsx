@@ -18,8 +18,8 @@ export default function Home() {
             <li><Link className="hover:text-primary transition-colors" href="#pricing">Pricing</Link></li>
           </ul>
           <div className="flex items-center gap-4">
-            <Link className="hidden sm:block text-sm font-medium text-gray-300 hover:text-primary transition-colors" href="/chat">Login</Link>
-            <Link className="bg-primary hover:bg-opacity-90 text-white px-5 py-2 rounded-full text-sm font-semibold transition-all shadow-lg shadow-primary/20" href="/chat">
+            <Link className="hidden sm:block text-sm font-medium text-gray-300 hover:text-primary transition-colors" href="/login">Login</Link>
+            <Link className="bg-primary hover:bg-opacity-90 text-white px-5 py-2 rounded-full text-sm font-semibold transition-all shadow-lg shadow-primary/20" href="/login">
               Get Started
             </Link>
           </div>
@@ -43,7 +43,7 @@ export default function Home() {
               Experience the next generation of AI communication. Zero-G provides human-like reasoning, blazingly fast responses, and a workspace built for the future.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-              <Link className="w-full sm:w-auto px-8 py-4 bg-primary text-white font-bold rounded-xl shadow-[0_0_25px_rgba(139,92,246,0.3)] hover:scale-105 transition-transform flex items-center justify-center gap-2" href="/chat">
+              <Link className="w-full sm:w-auto px-8 py-4 bg-primary text-white font-bold rounded-xl shadow-[0_0_25px_rgba(139,92,246,0.3)] hover:scale-105 transition-transform flex items-center justify-center gap-2" href="/register">
                 <span className="material-symbols-outlined text-xl">rocket_launch</span>
                 Get Started Free
               </Link>

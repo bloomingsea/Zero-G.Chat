@@ -1,5 +1,5 @@
 import { openRouter } from '@/lib/openrouter';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
