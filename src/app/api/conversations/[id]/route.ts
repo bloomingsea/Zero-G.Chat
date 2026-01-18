@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const session = await auth();
         if (!session?.user?.email) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -24,7 +25,7 @@ export async function GET(
 
         const conversation = await prisma.conversation.findFirst({
             where: {
-                id: params.id,
+                id: id,
                 userId: user.id
             },
             include: {
@@ -53,9 +54,10 @@ export async function GET(
 
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const session = await auth();
         if (!session?.user?.email) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -72,7 +74,7 @@ export async function PUT(
         // Verify conversation belongs to user
         const conversation = await prisma.conversation.findFirst({
             where: {
-                id: params.id,
+                id: id,
                 userId: user.id
             }
         });
@@ -94,7 +96,7 @@ export async function PUT(
         if (isPinned !== undefined) dataToUpdate.isPinned = isPinned;
 
         const updatedConversation = await prisma.conversation.update({
-            where: { id: params.id },
+            where: { id: id },
             data: dataToUpdate,
             include: {
                 folder: {
@@ -115,9 +117,10 @@ export async function PUT(
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const session = await auth();
         if (!session?.user?.email) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -134,7 +137,7 @@ export async function DELETE(
         // Verify conversation belongs to user
         const conversation = await prisma.conversation.findFirst({
             where: {
-                id: params.id,
+                id: id,
                 userId: user.id
             }
         });
@@ -144,7 +147,7 @@ export async function DELETE(
         }
 
         await prisma.conversation.delete({
-            where: { id: params.id }
+            where: { id: id }
         });
 
         return NextResponse.json({ success: true });

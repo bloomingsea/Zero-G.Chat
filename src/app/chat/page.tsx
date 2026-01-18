@@ -44,6 +44,10 @@ export default function ChatPage() {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
+    const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+    const [editFolderName, setEditFolderName] = useState('');
+    const [menuOpenFolderId, setMenuOpenFolderId] = useState<string | null>(null);
+    const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -145,6 +149,18 @@ export default function ChatPage() {
         }
     };
 
+    const toggleFolder = (folderId: string) => {
+        setExpandedFolders(prev => {
+            const next = new Set(prev);
+            if (next.has(folderId)) {
+                next.delete(folderId);
+            } else {
+                next.add(folderId);
+            }
+            return next;
+        });
+    };
+
     const moveToFolder = async (conversationId: string, folderId: string | null) => {
         try {
             const res = await fetch(`/api/conversations/${conversationId}`, {
@@ -157,6 +173,71 @@ export default function ChatPage() {
             }
         } catch (error) {
             console.error('Failed to move conversation:', error);
+        }
+    };
+
+    const renameFolder = async (folderId: string, newName: string) => {
+        if (!newName.trim()) return;
+        try {
+            const res = await fetch(`/api/folders/${folderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName.trim() })
+            });
+            if (res.ok) {
+                setFolders(prev => prev.map(f => f.id === folderId ? { ...f, name: newName.trim() } : f));
+                setEditingFolderId(null);
+            }
+        } catch (error) {
+            console.error('Failed to rename folder:', error);
+        }
+    };
+
+    const deleteFolder = async (folderId: string) => {
+        if (!confirm('Are you sure you want to delete this folder? Conversations will be moved to the main list.')) return;
+        try {
+            const res = await fetch(`/api/folders/${folderId}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                setFolders(prev => prev.filter(f => f.id !== folderId));
+                fetchConversations(); // Refresh to show moved chats in main list
+            }
+        } catch (error) {
+            console.error('Failed to delete folder:', error);
+        }
+    };
+
+    const handleDragStart = (e: React.DragEvent, conversationId: string) => {
+        e.dataTransfer.setData('conversationId', conversationId);
+        // Add a nice drag effect
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault(); // Necessary to allow dropping
+        e.currentTarget.classList.add('bg-primary/10');
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.currentTarget.classList.remove('bg-primary/10');
+    };
+
+    const handleDrop = async (e: React.DragEvent, folderId: string | null) => {
+        e.preventDefault();
+        e.currentTarget.classList.remove('bg-primary/10');
+        const conversationId = e.dataTransfer.getData('conversationId');
+        if (conversationId) {
+            // Optimistic update
+            setConversations(prev => prev.map(c =>
+                c.id === conversationId
+                    ? { ...c, folderId: folderId, folder: folderId ? { id: folderId, name: folders.find(f => f.id === folderId)?.name || '' } : null }
+                    : c
+            ));
+            if (folderId) {
+                setExpandedFolders(prev => new Set(prev).add(folderId));
+            }
+            await moveToFolder(conversationId, folderId);
         }
     };
 
@@ -291,18 +372,97 @@ export default function ChatPage() {
                         )}
                         <nav className="space-y-1">
                             {folders.map((folder) => (
-                                <button
+                                <div
                                     key={folder.id}
-                                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 group transition-all cursor-pointer"
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={(e) => handleDrop(e, folder.id)}
+                                    className="group relative"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <span className="material-icons-round text-sm">folder</span>
-                                        <span className="text-sm font-medium">{folder.name}</span>
-                                    </div>
-                                    <span className="text-xs text-slate-400">{folder.conversations?.length || 0}</span>
-                                </button>
+                                    {editingFolderId === folder.id ? (
+                                        <div className="px-2 py-1">
+                                            <input
+                                                type="text"
+                                                value={editFolderName}
+                                                onChange={(e) => setEditFolderName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') renameFolder(folder.id, editFolderName);
+                                                    if (e.key === 'Escape') setEditingFolderId(null);
+                                                }}
+                                                onBlur={() => renameFolder(folder.id, editFolderName)}
+                                                className="w-full bg-white dark:bg-white/10 border border-primary rounded px-2 py-1 text-xs focus:outline-none"
+                                                autoFocus
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer">
+                                            <button
+                                                onClick={() => toggleFolder(folder.id)}
+                                                className="flex-1 flex items-center gap-3 text-left"
+                                            >
+                                                <span className={`material-icons-round text-sm transition-transform ${expandedFolders.has(folder.id) ? 'rotate-90' : ''}`}>chevron_right</span>
+                                                <span className="material-icons-round text-sm">folder</span>
+                                                <span className="text-sm font-medium">{folder.name}</span>
+                                            </button>
+
+                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="text-xs text-slate-400 mr-2">{folder.conversations?.length || 0}</span>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingFolderId(folder.id);
+                                                        setEditFolderName(folder.name);
+                                                    }}
+                                                    className="p-1 hover:text-primary transition-colors"
+                                                >
+                                                    <span className="material-icons-round text-[14px]">edit</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteFolder(folder.id)}
+                                                    className="p-1 hover:text-red-500 transition-colors"
+                                                >
+                                                    <span className="material-icons-round text-[14px]">delete</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {expandedFolders.has(folder.id) && (
+                                        <div className="pl-4 space-y-1 mt-1 border-l-2 border-slate-100 dark:border-slate-800 ml-2">
+                                            {conversations
+                                                .filter(c => c.folderId === folder.id)
+                                                .map(conversation => (
+                                                    <div
+                                                        key={conversation.id}
+                                                        draggable
+                                                        onDragStart={(e) => handleDragStart(e, conversation.id)}
+                                                        className={`group flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer transition-all ${currentConversationId === conversation.id ? 'bg-slate-100 dark:bg-white/5 text-primary' : ''}`}
+                                                        onClick={() => loadConversation(conversation.id)}
+                                                    >
+                                                        <span className="text-slate-300 dark:text-slate-600 cursor-move opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">::</span>
+                                                        <span className="material-icons-round text-[14px]">chat_bubble_outline</span>
+                                                        <span className="truncate flex-1">{conversation.title}</span>
+                                                    </div>
+                                                ))
+                                            }
+                                            {conversations.filter(c => c.folderId === folder.id).length === 0 && (
+                                                <div className="text-[10px] text-slate-400 pl-6 py-1 italic">
+                                                    Empty folder
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                         </nav>
+
+                        {/* Drop Zone for removing from folder (Root) */}
+                        <div
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, null)}
+                            className="mt-4 px-2 py-3 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-center text-xs text-slate-400 hover:border-primary/50 hover:bg-primary/5 transition-all"
+                        >
+                            Drag here to remove from folder
+                        </div>
                     </div>
                     <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 mb-2 block">Recent</span>
@@ -311,10 +471,14 @@ export default function ChatPage() {
                                 <button
                                     key={conv.id}
                                     onClick={() => loadConversation(conv.id)}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, conv.id)}
                                     className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all ${currentConversationId === conv.id ? 'bg-slate-100 dark:bg-white/5' : ''
                                         }`}
                                 >
-                                    <span className="material-icons-round text-sm">chat_bubble_outline</span>
+                                    <div className="text-slate-400 cursor-grab active:cursor-grabbing">
+                                        <span className="material-icons-round text-[14px]">drag_indicator</span>
+                                    </div>
                                     <span className="truncate flex-1 text-left">{conv.title || 'Untitled Chat'}</span>
                                 </button>
                             ))}

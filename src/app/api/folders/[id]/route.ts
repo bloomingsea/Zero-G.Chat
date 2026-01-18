@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic';
 
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const session = await auth();
         if (!session?.user?.email) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -30,7 +31,7 @@ export async function PUT(
         // Verify folder belongs to user
         const folder = await prisma.folder.findFirst({
             where: {
-                id: params.id,
+                id: id,
                 userId: user.id
             }
         });
@@ -40,7 +41,7 @@ export async function PUT(
         }
 
         const updatedFolder = await prisma.folder.update({
-            where: { id: params.id },
+            where: { id: id },
             data: { name: name.trim() }
         });
 
@@ -53,9 +54,10 @@ export async function PUT(
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const session = await auth();
         if (!session?.user?.email) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -72,7 +74,7 @@ export async function DELETE(
         // Verify folder belongs to user
         const folder = await prisma.folder.findFirst({
             where: {
-                id: params.id,
+                id: id,
                 userId: user.id
             }
         });
@@ -82,7 +84,7 @@ export async function DELETE(
         }
 
         await prisma.folder.delete({
-            where: { id: params.id }
+            where: { id: id }
         });
 
         return NextResponse.json({ success: true });
