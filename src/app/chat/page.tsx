@@ -538,10 +538,7 @@ export default function ChatPage() {
                     <div className="flex items-center gap-4">
                         <button className="px-4 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-full flex items-center gap-2">
                             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                            Update Available
-                        </button>
-                        <button className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
-                            <span className="material-icons-round text-slate-500">settings</span>
+                            New version coming soon
                         </button>
                     </div>
                 </header>
