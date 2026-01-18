@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { ChatBubble } from '@/components/chat-bubble';
+import { useSession, signOut } from "next-auth/react";
 
 interface Message {
     role: 'user' | 'assistant';
@@ -9,6 +10,7 @@ interface Message {
 }
 
 export default function ChatPage() {
+    const { data: session } = useSession();
     const [messages, setMessages] = useState<Message[]>([
         { role: 'assistant', content: 'Hello! I am Zero-G. How can I assist you today?' }
     ]);
@@ -17,6 +19,7 @@ export default function ChatPage() {
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -158,17 +161,39 @@ export default function ChatPage() {
                         </nav>
                     </div>
                 </div>
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-                    <button className="w-full flex items-center gap-3 p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer">
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800 relative">
+                    <button
+                        onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                        className="w-full flex items-center gap-3 p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer relative"
+                    >
                         <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex items-center justify-center">
-                            <span className="material-icons-round text-slate-400 text-lg">person</span>
+                            {session?.user?.image ? (
+                                <img src={session.user.image} alt="User" className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="material-icons-round text-slate-400 text-lg">person</span>
+                            )}
                         </div>
                         <div className="flex-1 text-left">
-                            <p className="text-xs font-semibold">User</p>
-                            <p className="text-[10px] text-slate-500">Pro Plan</p>
+                            <p className="text-xs font-semibold truncate max-w-[120px]">{session?.user?.name || "User"}</p>
+                            <p className="text-[10px] text-slate-500">Standard Plan</p>
                         </div>
                         <span className="material-icons-round text-slate-400 text-sm">settings</span>
                     </button>
+
+                    {/* Settings Dropdown */}
+                    {isSettingsOpen && (
+                        <div className="absolute bottom-full left-0 w-full p-2 mb-2 z-50">
+                            <div className="bg-white dark:bg-card-dark border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200">
+                                <button
+                                    onClick={() => signOut({ callbackUrl: '/' })}
+                                    className="w-full flex items-center gap-2 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-sm font-medium cursor-pointer"
+                                >
+                                    <span className="material-icons-round text-sm">logout</span>
+                                    Log out
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </aside>
 
