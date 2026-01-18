@@ -611,15 +611,6 @@ export default function ChatPage() {
                                 disabled={isLoading}
                             />
                             <div className="flex items-center gap-2 pr-1">
-                                {isMobile && (
-                                    <button
-                                        type="submit"
-                                        disabled={!input.trim() || isLoading}
-                                        className="p-3 text-slate-400 hover:text-primary transition-colors cursor-pointer"
-                                    >
-                                        <span className="material-icons-round">keyboard_return</span>
-                                    </button>
-                                )}
                                 <button
                                     type="submit"
                                     disabled={!input.trim() || isLoading}
