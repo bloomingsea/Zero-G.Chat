@@ -12,8 +12,11 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
-  --color-primary: #8B5CF6;
-  --color-background-dark: #0A0A0C;
+  --color-primary: #7C3AED;
+  --color-background-light: #F9FAFB;
+  --color-background-dark: #0B0B0F;
+  --color-sidebar-dark: #121218;
+  --color-card-dark: #1E1E26;
   --color-accent-purple: #4F46E5;
   --color-deep-obsidian: #050507;
   --color-neon-blue: #38BDF8;
@@ -23,6 +26,25 @@
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;
   --radius-3xl: 2rem;
+}
+
+.gradient-mesh {
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(at 0% 0%, hsla(263, 85%, 95%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(263, 85%, 95%, 1) 0, transparent 50%);
+}
+
+.dark .gradient-mesh {
+  background-color: #0B0B0F;
+  background-image:
+    radial-gradient(at 0% 0%, hsla(263, 40%, 15%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(263, 40%, 15%, 1) 0, transparent 50%);
+}
+
+.sidebar-item-active {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7C3AED;
 }
 
 body {

@@ -7,13 +7,17 @@ export const authConfig = {
     callbacks: {
         authorized({ auth, request: { nextUrl } }) {
             const isLoggedIn = !!auth?.user
-            const isOnChat = nextUrl.pathname.startsWith("/chat")
+            const publicPaths = ["/", "/login", "/register"]
+            const isPublicPath = publicPaths.includes(nextUrl.pathname)
 
-            if (isOnChat) {
-                if (isLoggedIn) return true
-                return false // Redirect unauthenticated users to login page
+            if (isPublicPath) {
+                if (isLoggedIn && (nextUrl.pathname === "/login" || nextUrl.pathname === "/register")) {
+                    return Response.redirect(new URL("/chat", nextUrl))
+                }
+                return true
             }
-            return true
+
+            return isLoggedIn
         },
         async session({ session, token }) {
             if (token.sub && session.user) {
