@@ -279,9 +279,7 @@ export default function ChatPage() {
         }
     };
 
-    const toggleTheme = () => {
-        document.documentElement.classList.toggle('dark');
-    };
+
 
     const isInitialState = messages.length === 1 && messages[0].role === 'assistant';
 
@@ -531,11 +529,11 @@ export default function ChatPage() {
                         <HamburgerButton />
                         <span className="text-sm font-medium text-slate-400">Zero-G</span>
                         <span className="text-slate-300 dark:text-slate-700">/</span>
-                        <span className="text-sm font-semibold truncate max-w-[200px]">
+                        <span className="text-sm font-semibold truncate max-w-[200px] text-white">
                             {isInitialState ? 'New Conversation' : messages[messages.length - 1]?.content.slice(0, 30) + '...'}
                         </span>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="hidden md:flex items-center gap-4">
                         <button className="px-4 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-full flex items-center gap-2">
                             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
                             New version coming soon
@@ -559,7 +557,7 @@ export default function ChatPage() {
                                     Get expert guidance powered by AI agents specializing in Sales, Marketing, and Negotiation. Choose the agent that suits your needs.
                                 </p>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-12">
+                            <div className="hidden md:grid grid-cols-1 md:grid-cols-4 gap-4 mt-12">
                                 {[
                                     { icon: 'insights', color: 'text-primary', bg: 'bg-primary/10', title: 'Marketing Insights', desc: 'Discover the best marketing strategies to showcase your properties.' },
                                     { icon: 'handshake', color: 'text-orange-500', bg: 'bg-orange-500/10', title: 'Negotiation Tactics', desc: 'Learn expert negotiation tips to close deals more effectively.' },
@@ -604,11 +602,8 @@ export default function ChatPage() {
                     <div className="max-w-3xl mx-auto relative group">
                         <div className="absolute inset-0 bg-primary/20 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
                         <form onSubmit={handleSubmit} className="relative bg-white dark:bg-card-dark border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl p-2 flex items-center gap-2 transition-all focus-within:ring-1 focus-within:ring-primary/50">
-                            <button type="button" className="p-3 text-slate-400 hover:text-primary transition-colors cursor-pointer">
-                                <span className="material-icons-round">attach_file</span>
-                            </button>
                             <input
-                                className="flex-1 bg-transparent border-none focus:ring-0 text-slate-800 dark:text-white placeholder:text-slate-400 px-2 outline-none"
+                                className="flex-1 bg-transparent border-none focus:ring-0 text-slate-800 dark:text-white placeholder:text-slate-400 px-4 outline-none ml-2"
                                 placeholder="Type your message here..."
                                 type="text"
                                 value={input}
@@ -616,9 +611,15 @@ export default function ChatPage() {
                                 disabled={isLoading}
                             />
                             <div className="flex items-center gap-2 pr-1">
-                                <button type="button" className="p-3 text-slate-400 hover:text-primary transition-colors cursor-pointer">
-                                    <span className="material-icons-round">mic</span>
-                                </button>
+                                {isMobile && (
+                                    <button
+                                        type="submit"
+                                        disabled={!input.trim() || isLoading}
+                                        className="p-3 text-slate-400 hover:text-primary transition-colors cursor-pointer"
+                                    >
+                                        <span className="material-icons-round">keyboard_return</span>
+                                    </button>
+                                )}
                                 <button
                                     type="submit"
                                     disabled={!input.trim() || isLoading}
@@ -634,13 +635,7 @@ export default function ChatPage() {
                     </div>
                 </div>
 
-                <button
-                    className="fixed bottom-6 right-6 p-3 bg-white dark:bg-card-dark border border-slate-200 dark:border-white/10 rounded-full shadow-lg z-50 text-slate-500 dark:text-slate-400 hover:scale-110 transition-transform cursor-pointer"
-                    onClick={toggleTheme}
-                >
-                    <span className="material-icons-round dark:hidden">dark_mode</span>
-                    <span className="material-icons-round hidden dark:block">light_mode</span>
-                </button>
+
             </main>
         </div>
     );
