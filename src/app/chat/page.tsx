@@ -18,12 +18,32 @@ export default function ChatPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default closed to match requirement/avoid hydration issues initially
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
+
+    useEffect(() => {
+        const checkMobile = () => {
+            const isMobileView = window.innerWidth < 768; // 768px is standard tablet/mobile breakpoint
+            setIsMobile(isMobileView);
+        };
+
+        checkMobile();
+        // Set initial sidebar state based on screen size
+        // Requirement: default for tablet and mobile should be collapsed
+        if (window.innerWidth >= 768) {
+            setIsSidebarOpen(true);
+        } else {
+            setIsSidebarOpen(false);
+        }
+
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         if (messages.length > 1) {
@@ -34,6 +54,7 @@ export default function ChatPage() {
     const loadConversation = async (id: string) => {
         setIsLoading(true);
         setCurrentConversationId(id);
+        if (isMobile) setIsSidebarOpen(false);
         try {
             const res = await fetch(`/api/conversations/${id}`);
             const data = await res.json();
@@ -50,6 +71,7 @@ export default function ChatPage() {
     const startNewChat = () => {
         setMessages([{ role: 'assistant', content: 'Hello! I am Zero-G. How can I assist you today?' }]);
         setCurrentConversationId(null);
+        if (isMobile) setIsSidebarOpen(false);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -95,10 +117,39 @@ export default function ChatPage() {
 
     const isInitialState = messages.length === 1 && messages[0].role === 'assistant';
 
+    const HamburgerButton = () => (
+        <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="mr-2 p-2 relative w-10 h-10 flex flex-col justify-center items-center group cursor-pointer"
+            aria-label="Toggle Sidebar"
+        >
+            <span className={`h-0.5 w-5 bg-slate-400 dark:bg-slate-300 rounded-full transition-all duration-300 ease-out ${isSidebarOpen ? 'rotate-45 translate-y-1.5' : '-translate-y-1'}`} />
+            <span className={`h-0.5 w-5 bg-slate-400 dark:bg-slate-300 rounded-full transition-all duration-300 ease-out my-1 ${isSidebarOpen ? 'opacity-0' : 'opacity-100'}`} />
+            <span className={`h-0.5 w-5 bg-slate-400 dark:bg-slate-300 rounded-full transition-all duration-300 ease-out ${isSidebarOpen ? '-rotate-45 -translate-y-1.5' : 'translate-y-1'}`} />
+        </button>
+    );
+
     return (
-        <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased h-screen flex overflow-hidden font-sans">
+        <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased h-screen flex overflow-hidden font-sans relative">
+            {/* Mobile Backdrop */}
+            {isMobile && isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 animate-in fade-in duration-200"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className={`w-72 bg-white dark:bg-sidebar-dark border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 ${isSidebarOpen ? '' : '-ml-72'}`}>
+            <aside
+                className={`
+                    fixed inset-y-0 left-0 z-40 w-72 bg-white dark:bg-sidebar-dark border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300
+                    md:relative md:translate-x-0
+                    ${isMobile
+                        ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full')
+                        : (isSidebarOpen ? 'ml-0' : '-ml-72 relative')
+                    }
+                `}
+            >
                 <div className="p-6 flex items-center gap-3">
                     <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                         <span className="material-icons-round text-white text-xl">blur_on</span>
@@ -108,7 +159,10 @@ export default function ChatPage() {
                 <div className="flex-1 overflow-y-auto px-4 space-y-6">
                     <div className="space-y-1">
                         <button
-                            onClick={startNewChat}
+                            onClick={() => {
+                                startNewChat();
+                                if (isMobile) setIsSidebarOpen(false);
+                            }}
                             className="w-full flex items-center gap-3 px-4 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-opacity-90 transition-all shadow-lg shadow-primary/20 cursor-pointer"
                         >
                             <span className="material-icons-round text-sm">add</span>
@@ -201,9 +255,7 @@ export default function ChatPage() {
             <main className="flex-1 flex flex-col gradient-mesh relative overflow-hidden">
                 <header className="h-16 flex items-center justify-between px-8 z-10">
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="mr-2 text-slate-400 hover:text-primary transition-colors">
-                            <span className="material-icons-round">menu_open</span>
-                        </button>
+                        <HamburgerButton />
                         <span className="text-sm font-medium text-slate-400">Zero-G</span>
                         <span className="text-slate-300 dark:text-slate-700">/</span>
                         <span className="text-sm font-semibold truncate max-w-[200px]">
