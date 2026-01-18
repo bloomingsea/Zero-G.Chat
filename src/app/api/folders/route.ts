@@ -19,32 +19,24 @@ export async function GET() {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        const conversations = await prisma.conversation.findMany({
+        const folders = await prisma.folder.findMany({
             where: { userId: user.id },
-            orderBy: [
-                { isPinned: 'desc' },
-                { createdAt: 'desc' }
-            ],
+            orderBy: { createdAt: 'asc' },
             include: {
-                messages: {
-                    orderBy: { createdAt: 'asc' },
-                    take: 1
-                },
-                folder: {
+                conversations: {
                     select: {
-                        id: true,
-                        name: true
+                        id: true
                     }
                 }
             }
         });
-        return NextResponse.json(conversations);
+
+        return NextResponse.json(folders);
     } catch (error) {
-        console.error('Failed to fetch conversations:', error);
-        return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
+        console.error('Failed to fetch folders:', error);
+        return NextResponse.json({ error: 'Failed to fetch folders' }, { status: 500 });
     }
 }
-
 
 export async function POST(req: Request) {
     try {
@@ -61,17 +53,21 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        const { title, folderId } = await req.json().catch(() => ({}));
-        const conversation = await prisma.conversation.create({
+        const { name } = await req.json();
+        if (!name || name.trim() === '') {
+            return NextResponse.json({ error: 'Folder name is required' }, { status: 400 });
+        }
+
+        const folder = await prisma.folder.create({
             data: {
-                title: title || 'New Conversation',
-                userId: user.id,
-                folderId: folderId || null
-            },
+                name: name.trim(),
+                userId: user.id
+            }
         });
-        return NextResponse.json(conversation);
+
+        return NextResponse.json(folder);
     } catch (error) {
-        console.error('Failed to create conversation:', error);
-        return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 });
+        console.error('Failed to create folder:', error);
+        return NextResponse.json({ error: 'Failed to create folder' }, { status: 500 });
     }
 }

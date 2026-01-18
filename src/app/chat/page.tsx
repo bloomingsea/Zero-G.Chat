@@ -9,6 +9,25 @@ interface Message {
     content: string;
 }
 
+interface Folder {
+    id: string;
+    name: string;
+    conversations: { id: string }[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface Conversation {
+    id: string;
+    title: string;
+    createdAt: string;
+    updatedAt: string;
+    folderId: string | null;
+    folder: { id: string; name: string } | null;
+    isPinned: boolean;
+    messages: Message[];
+}
+
 export default function ChatPage() {
     const { data: session } = useSession();
     const [messages, setMessages] = useState<Message[]>([
@@ -21,6 +40,10 @@ export default function ChatPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default closed to match requirement/avoid hydration issues initially
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [folders, setFolders] = useState<Folder[]>([]);
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+    const [newFolderName, setNewFolderName] = useState('');
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -43,6 +66,11 @@ export default function ChatPage() {
 
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    useEffect(() => {
+        fetchFolders();
+        fetchConversations();
     }, []);
 
     useEffect(() => {
@@ -74,6 +102,64 @@ export default function ChatPage() {
         if (isMobile) setIsSidebarOpen(false);
     };
 
+    const fetchFolders = async () => {
+        try {
+            const res = await fetch('/api/folders');
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setFolders(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch folders:', error);
+        }
+    };
+
+    const fetchConversations = async () => {
+        try {
+            const res = await fetch('/api/conversations');
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setConversations(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch conversations:', error);
+        }
+    };
+
+    const createFolder = async () => {
+        if (!newFolderName.trim()) return;
+        try {
+            const res = await fetch('/api/folders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newFolderName.trim() })
+            });
+            if (res.ok) {
+                const newFolder = await res.json();
+                setFolders(prev => [...prev, newFolder]);
+                setNewFolderName('');
+                setIsCreatingFolder(false);
+            }
+        } catch (error) {
+            console.error('Failed to create folder:', error);
+        }
+    };
+
+    const moveToFolder = async (conversationId: string, folderId: string | null) => {
+        try {
+            const res = await fetch(`/api/conversations/${conversationId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folderId })
+            });
+            if (res.ok) {
+                fetchConversations();
+            }
+        } catch (error) {
+            console.error('Failed to move conversation:', error);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim() || isLoading) return;
@@ -99,6 +185,7 @@ export default function ChatPage() {
                 setMessages(prev => [...prev, { role: 'assistant', content: data.result }]);
                 if (data.conversationId && data.conversationId !== currentConversationId) {
                     setCurrentConversationId(data.conversationId);
+                    fetchConversations(); // Refresh conversation list when new conversation is created
                 }
             } else {
                 throw new Error(data.error || 'Failed to fetch response');
@@ -175,43 +262,65 @@ export default function ChatPage() {
                     </div>
                     <div>
                         <div className="flex items-center justify-between px-2 mb-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Pinned Folders</span>
-                            <button className="text-slate-400 hover:text-primary transition-colors cursor-pointer">
-                                <span className="material-icons-round text-sm">add</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Folders</span>
+                            <button
+                                onClick={() => setIsCreatingFolder(!isCreatingFolder)}
+                                className="text-slate-400 hover:text-primary transition-colors cursor-pointer"
+                            >
+                                <span className="material-icons-round text-sm">{isCreatingFolder ? 'close' : 'add'}</span>
                             </button>
                         </div>
+                        {isCreatingFolder && (
+                            <div className="px-2 mb-2">
+                                <input
+                                    type="text"
+                                    value={newFolderName}
+                                    onChange={(e) => setNewFolderName(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && createFolder()}
+                                    placeholder="Folder name..."
+                                    className="w-full bg-slate-100 dark:bg-white/5 border-none rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-primary outline-none"
+                                    autoFocus
+                                />
+                                <button
+                                    onClick={createFolder}
+                                    className="w-full mt-1 bg-primary text-white text-xs py-1.5 rounded-lg hover:bg-opacity-90 transition-all"
+                                >
+                                    Create
+                                </button>
+                            </div>
+                        )}
                         <nav className="space-y-1">
-                            <a className="flex items-center justify-between px-3 py-2 rounded-lg sidebar-item-active group cursor-pointer" href="#">
-                                <div className="flex items-center gap-3">
-                                    <span className="material-icons-round text-sm">folder</span>
-                                    <span className="text-sm font-medium">General</span>
-                                </div>
-                                <span className="material-icons-round text-xs opacity-0 group-hover:opacity-100">more_horiz</span>
-                            </a>
-                            <a className="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 group transition-all cursor-pointer" href="#">
-                                <div className="flex items-center gap-3">
-                                    <span className="material-icons-round text-sm">folder</span>
-                                    <span className="text-sm font-medium">Design</span>
-                                </div>
-                                <span className="material-icons-round text-xs opacity-0 group-hover:opacity-100">more_horiz</span>
-                            </a>
-                            <a className="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 group transition-all cursor-pointer" href="#">
-                                <div className="flex items-center gap-3">
-                                    <span className="material-icons-round text-sm">folder</span>
-                                    <span className="text-sm font-medium">Management</span>
-                                </div>
-                                <span className="material-icons-round text-xs opacity-0 group-hover:opacity-100">more_horiz</span>
-                            </a>
+                            {folders.map((folder) => (
+                                <button
+                                    key={folder.id}
+                                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 group transition-all cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="material-icons-round text-sm">folder</span>
+                                        <span className="text-sm font-medium">{folder.name}</span>
+                                    </div>
+                                    <span className="text-xs text-slate-400">{folder.conversations?.length || 0}</span>
+                                </button>
+                            ))}
                         </nav>
                     </div>
                     <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 mb-2 block">Today</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 mb-2 block">Recent</span>
                         <nav className="space-y-1">
-                            {/* Placeholder for recent chats */}
-                            <a className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg cursor-pointer" href="#">
-                                <span className="material-icons-round text-sm">chat_bubble_outline</span>
-                                <span className="truncate">Marketing plan for Q4</span>
-                            </a>
+                            {conversations.filter(c => !c.folderId).slice(0, 10).map((conv) => (
+                                <button
+                                    key={conv.id}
+                                    onClick={() => loadConversation(conv.id)}
+                                    className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all ${currentConversationId === conv.id ? 'bg-slate-100 dark:bg-white/5' : ''
+                                        }`}
+                                >
+                                    <span className="material-icons-round text-sm">chat_bubble_outline</span>
+                                    <span className="truncate flex-1 text-left">{conv.title || 'Untitled Chat'}</span>
+                                </button>
+                            ))}
+                            {conversations.filter(c => !c.folderId).length === 0 && (
+                                <p className="text-xs text-slate-400 px-3 py-2">No conversations yet</p>
+                            )}
                         </nav>
                     </div>
                 </div>

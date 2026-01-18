@@ -1,11 +1,25 @@
 import { openRouter } from '@/lib/openrouter';
 import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
     try {
+        const session = await auth();
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email }
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
         const { prompt, conversationId } = await req.json();
 
         let targetConversationId = conversationId;
@@ -15,6 +29,7 @@ export async function POST(req: Request) {
             const newConv = await prisma.conversation.create({
                 data: {
                     title: prompt.slice(0, 30) + '...',
+                    userId: user.id
                 },
             });
             targetConversationId = newConv.id;
